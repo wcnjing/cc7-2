@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watch 360 View</title>
+<style>
+  :root{
+    --bg:#EAF3FB; --navy:#14246B; --coral:#B9544B;
+    --gold:#C9A24A; --gold-light:#F2D98C; --gold-dark:#8A6A22;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:radial-gradient(ellipse at 50% 45%, #fff 0%, var(--bg) 60%);
+    color:var(--navy); overflow:hidden;
+    font-family:"Avenir Next","Futura","Century Gothic","Segoe UI",system-ui,sans-serif;
+    display:flex; flex-direction:column; min-height:100vh;
+  }
+  h1{ margin:0; padding:clamp(16px,3vh,32px) 24px 0; text-align:center; font-weight:800; font-size:clamp(24px,2.6vw,46px); letter-spacing:-.5px }
+  h1 span{ color:var(--coral) }
+  .sub{ text-align:center; margin:6px 0 0; font-size:clamp(14px,1.1vw,20px); opacity:.75 }
+
+  .scene{ flex:1; position:relative; perspective:1400px; cursor:grab; touch-action:none; user-select:none; min-height:420px }
+  .scene:active{ cursor:grabbing }
+  .shadow{ position:absolute; left:50%; top:50%; width:460px; height:90px; margin-left:-230px; margin-top:250px;
+    background:radial-gradient(ellipse, rgba(20,36,107,.28), transparent 70%); filter:blur(6px); transform:scale(var(--k,1)) }
+  .obj{ position:absolute; left:50%; top:50%; width:0; height:0; transform-style:preserve-3d; transform:scale(var(--k,1)) }
+  .obj *{ transform-style:preserve-3d }
+
+  /* case discs */
+  .disc{ position:absolute; border-radius:50%; backface-visibility:hidden; -webkit-backface-visibility:hidden }
+  .front{
+    width:360px; height:360px; left:-180px; top:-180px; transform:translateZ(22px);
+    background:conic-gradient(from 210deg, var(--gold-dark), var(--gold-light), var(--gold), var(--gold-dark), var(--gold-light), var(--gold-dark));
+  }
+  .dial{ position:absolute; inset:18px; border-radius:50%; overflow:hidden;
+    background:radial-gradient(circle at 50% 35%, #22347f, #14246B 70%);
+    box-shadow: inset 0 6px 20px rgba(0,0,0,.6) }
+  .glass{ position:absolute; inset:18px; border-radius:50%; pointer-events:none;
+    background:linear-gradient(135deg, rgba(255,255,255,.28) 0%, rgba(255,255,255,0) 40%, rgba(255,255,255,0) 70%, rgba(255,255,255,.08) 100%) }
+  .marker{ position:absolute; left:50%; top:50%; width:3px; height:11px; background:var(--gold-light); border-radius:2px; opacity:.55 }
+  .marker.big{ width:8px; height:26px; background:#E2C06A; opacity:1 }
+  .brand{ position:absolute; top:24%; width:100%; text-align:center; color:#E2C06A; font-size:11px; letter-spacing:4px; font-weight:700 }
+  .screen{ position:absolute; left:50%; top:57%; transform:translateX(-50%); width:190px; height:90px; border-radius:10px;
+    background:#E9E6D8; color:var(--navy); box-shadow:0 0 0 3px rgba(0,0,0,.35), 0 0 0 5px var(--gold);
+    display:flex; align-items:center; justify-content:center; gap:8px; font-weight:800; z-index:4 }
+  .screen svg{ width:32px; height:32px }
+  .screen b{ font-size:32px; line-height:1 } .screen small{ display:block; font-size:15px; margin-top:3px }
+  .hand{ position:absolute; left:50%; bottom:50%; transform-origin:50% 100%; border-radius:5px; background:#E2C06A; box-shadow:0 3px 6px rgba(0,0,0,.5); z-index:3 }
+  .hand.h{ width:10px; height:84px; margin-left:-5px } .hand.m{ width:7px; height:126px; margin-left:-3.5px }
+  .hand.s{ width:3px; height:138px; margin-left:-1.5px; background:var(--coral); box-shadow:none }
+  .pin{ position:absolute; left:50%; top:50%; width:16px; height:16px; margin:-8px; border-radius:50%; background:#E2C06A; z-index:5 }
+
+  .back{
+    width:360px; height:360px; left:-180px; top:-180px; transform:rotateY(180deg) translateZ(22px);
+    background:radial-gradient(circle at 40% 35%, #f4e2a8, var(--gold) 45%, var(--gold-dark) 100%);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .back::before{ content:""; position:absolute; inset:26px; border-radius:50%;
+    background:repeating-radial-gradient(circle, rgba(0,0,0,.05) 0 1px, transparent 1px 4px); box-shadow:inset 0 0 0 2px rgba(0,0,0,.15) }
+  .sensor{ position:relative; width:130px; height:130px; border-radius:50%;
+    background:radial-gradient(circle, #1a1d24 0%, #050608 70%); box-shadow:0 0 0 8px #2a2e38, 0 0 0 10px rgba(0,0,0,.25) }
+  .led{ position:absolute; width:14px; height:14px; border-radius:50%; background:#3dff8b; box-shadow:0 0 14px 5px rgba(61,255,139,.6); left:50%; top:50%; margin:-7px }
+  .led.r{ background:#ff5b5b; box-shadow:0 0 12px 4px rgba(255,91,91,.55) }
+  .pd{ position:absolute; width:18px; height:12px; border-radius:3px; background:#3b4252; left:50%; top:50%; margin:-6px -9px }
+  .pins{ position:absolute; bottom:52px; display:flex; gap:22px }
+  .pins i{ width:12px; height:12px; border-radius:50%; background:radial-gradient(circle at 35% 35%,#fff7d6,#a5822e); box-shadow:0 0 0 2px rgba(0,0,0,.2) }
+  .engr{ position:absolute; top:46px; width:100%; text-align:center; font-size:11px; letter-spacing:2.5px; font-weight:700; color:rgba(70,50,10,.6); line-height:1.6 }
+
+  .side{ position:absolute; height:44px; top:-22px; backface-visibility:hidden; -webkit-backface-visibility:hidden }
+
+  /* crown */
+  .crown{ position:absolute; left:0; top:0; transform:translateX(196px) }
+  .cseg{ position:absolute; width:30px; left:-15px; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    background:repeating-linear-gradient(90deg, rgba(0,0,0,.25) 0 2px, transparent 2px 5px) }
+  .ccap{ position:absolute; width:34px; height:34px; left:-17px; top:-17px; border-radius:50%; transform:rotateY(90deg) translateZ(15px);
+    background:radial-gradient(circle at 40% 40%, var(--gold-light), var(--gold-dark)); }
+  .stem{ position:absolute; width:20px; height:14px; left:-24px; top:-7px; background:linear-gradient(var(--gold-light),var(--gold-dark)) }
+
+  /* strap */
+  .seg{ position:absolute; width:180px; height:30px; left:0;
+    background:
+      repeating-linear-gradient(60deg, rgba(255,255,255,.12) 0 5px, transparent 5px 10px),
+      repeating-linear-gradient(-60deg, rgba(0,0,0,.2) 0 5px, transparent 5px 10px),
+      linear-gradient(90deg,#4f6080,#7d8faf 50%,#4f6080);
+    background-size:20px 12px, 20px 12px, 100% 100%;
+    box-shadow: inset 3px 0 0 rgba(0,0,0,.15), inset -3px 0 0 rgba(0,0,0,.15) }
+  .strap-top{ position:absolute; left:-90px; top:-178px; }
+  .strap-top > .seg, .strap-top .seg .seg{ bottom:0; transform-origin:50% 100% }
+  .strap-top .seg .seg{ bottom:calc(100% - 1px); transform:rotateX(11deg) }
+  .strap-bot{ position:absolute; left:-90px; top:148px; }
+  .strap-bot > .seg{ top:0 }
+  .strap-bot .seg .seg{ top:calc(100% - 1px); transform-origin:50% 0; transform:rotateX(-11deg) }
+  .buckle{ position:absolute; inset:2px -6px; border:5px solid var(--gold); border-radius:6px }
+
+  /* controls */
+  .bar{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; padding:0 16px 10px }
+  .btn{ font:inherit; font-size:18px; font-weight:700; padding:12px 20px; border-radius:14px; border:none; cursor:pointer;
+    background:#fff; color:var(--navy); box-shadow:inset 0 0 0 2px #c9d9ea }
+  .btn.on{ background:var(--coral); color:#fff; box-shadow:0 5px 0 #8f3c35 }
+  .btn:hover{ box-shadow:inset 0 0 0 2px var(--navy) }
+  a.btn{ text-decoration:none }
+  .hint{ text-align:center; margin:0 0 clamp(14px,2.5vh,28px); color:var(--coral); font-weight:600; font-size:15px; padding:0 16px }
+  .callout{ position:absolute; font-weight:700; font-size:15px; color:var(--navy); background:#fff; padding:8px 12px; border-radius:10px;
+    box-shadow:0 6px 18px rgba(20,36,107,.15); opacity:0; transition:opacity .3s; pointer-events:none; max-width:220px }
+  .callout.show{ opacity:1 }
+  .callout i{ font-style:normal; color:var(--coral) }
+</style>
+</head>
+<body>
+  <h1 style="position:relative;z-index:2">360° view: <span>hybrid smartwatch</span></h1>
+  <p class="sub" style="position:relative;z-index:2">Drag to rotate. The familiar analogue face sits on top, with the health sensor on the back.</p>
+
+  <div class="scene" id="scene">
+    <div class="shadow"></div>
+    <div class="obj" id="obj">
+      <div class="strap-top" id="strapTop"></div>
+      <div class="strap-bot" id="strapBot"></div>
+      <div id="sides"></div>
+      <div class="crown" id="crown"><div class="stem"></div></div>
+      <div class="disc front">
+        <div class="dial" id="dial">
+          <div class="brand">HYBRID</div>
+          <div class="screen">
+            <svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 21s-7.5-4.6-9.6-9.3C.9 8.2 3 4.5 6.6 4.5c2.1 0 3.6 1.2 5.4 3.2 1.8-2 3.3-3.2 5.4-3.2 3.6 0 5.7 3.7 4.2 7.2C19.5 16.4 12 21 12 21z"/></svg>
+            <div><b>72 bpm</b><small>Heart rate</small></div>
+          </div>
+          <div class="hand h" id="hh"></div><div class="hand m" id="mh"></div><div class="hand s" id="sh"></div>
+          <div class="pin"></div>
+        </div>
+        <div class="glass"></div>
+      </div>
+      <div class="disc back">
+        <div class="engr">HEART RATE SENSOR<br>WATER RESISTANT 5 ATM</div>
+        <div class="sensor">
+          <div class="led" style="transform:translate(-28px,0)"></div>
+          <div class="led" style="transform:translate(28px,0)"></div>
+          <div class="led r" style="transform:translate(0,-28px)"></div>
+          <div class="pd" style="transform:translate(0,28px)"></div>
+        </div>
+        <div class="pins"><i></i><i></i></div>
+      </div>
+    </div>
+    <div class="callout" id="callout"></div>
+  </div>
+
+  <div class="bar">
+    <button class="btn" data-v="front">Front</button>
+    <button class="btn" data-v="side">Crown side</button>
+    <button class="btn" data-v="back">Back (sensor)</button>
+    <button class="btn on" id="auto">Auto-rotate</button>
+    <a class="btn" href="index.html">← Interactive demo</a>
+  </div>
+  <p class="hint">Drag the watch to spin it 360°. Simulation: mock product render.</p>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const obj = $('obj'), scene = $('scene'), callout = $('callout');
+
+  /* fit to screen */
+  const fit = () => { const k = Math.min(1.25, Math.max(.6, Math.min(innerWidth/900, (innerHeight-230)/800))); document.body.style.setProperty('--k', k); };
+  fit(); addEventListener('resize', fit);
+
+  /* case side: cylinder of segments */
+  const R = 180, N = 64, w = (2*Math.PI*R/N) + 1.2;
+  let html = '';
+  for (let i=0;i<N;i++){
+    const a = i*360/N;
+    // fake lighting: light from upper-left-front
+    const l = 0.55 + 0.45*Math.cos((a - 315) * Math.PI/180);
+    const c1 = `hsl(42,${45+15*l}%,${30+40*l}%)`, c2 = `hsl(42,50%,${20+30*l}%)`;
+    html += `<div class="side" style="width:${w}px;left:${-w/2}px;transform:rotateZ(${a}deg) translateY(${-R}px) rotateX(90deg);background:linear-gradient(${c2},${c1} 30%,${c1} 70%,${c2})"></div>`;
+  }
+  $('sides').innerHTML = html;
+
+  /* crown: small ridged cylinder along X */
+  const cr = 17, CN = 18, ch = 2*Math.PI*cr/CN + 1;
+  let ch_ = '';
+  for (let i=0;i<CN;i++){
+    const a = i*360/CN, l = 0.5 + 0.5*Math.cos((a-30)*Math.PI/180);
+    ch_ += `<div class="cseg" style="height:${ch}px;top:${-ch/2}px;background-color:hsl(42,55%,${28+40*l}%);transform:rotateX(${a}deg) translateZ(${cr}px)"></div>`;
+  }
+  $('crown').insertAdjacentHTML('beforeend', ch_ + '<div class="ccap"></div>');
+
+  /* straps: chains of segments bending away from the viewer */
+  function chain(el, n, last){
+    let node = el;
+    for (let i=0;i<n;i++){
+      const s = document.createElement('div'); s.className = 'seg';
+      if (i===n-1 && last) s.innerHTML = '<div class="buckle"></div>';
+      node.appendChild(s); node = s;
+    }
+  }
+  chain($('strapTop'), 15, false);
+  chain($('strapBot'), 15, true);
+
+  /* dial markers + live hands */
+  const dial = $('dial');
+  for (let i=0;i<60;i++){
+    const m = document.createElement('div'); const big = i%5===0;
+    m.className = 'marker' + (big?' big':'');
+    m.style.transform = `translate(-50%,-50%) rotate(${i*6}deg) translateY(-${big?138:144}px)`;
+    dial.insertBefore(m, dial.firstChild);
+  }
+  const hh=$('hh'), mh=$('mh'), sh=$('sh');
+
+  /* rotation state */
+  let rx = -14, ry = -30, tx = rx, ty = ry, auto = true, dragging = false, lx=0, ly=0, idleT = 0, vy = 0;
+  const views = { front:[-8,0], side:[-8,-90], back:[-8,180] };
+  const notes = {
+    front:'<i>Front:</i> classic analogue face + one-reading screen',
+    side:'<i>Crown:</i> the only control — turn to browse, press to select',
+    back:'<i>Back:</i> optical heart-rate sensor + magnetic charging pins',
+  };
+  let noteT;
+  function setAuto(v){ auto = v; $('auto').classList.toggle('on', v); }
+  document.querySelectorAll('[data-v]').forEach(b => b.onclick = () => {
+    const [x,y] = views[b.dataset.v];
+    // go to nearest equivalent angle
+    ty = y + 360*Math.round((ty - y)/360); tx = x; setAuto(false); vy = 0;
+    callout.innerHTML = notes[b.dataset.v]; callout.style.left='24px'; callout.style.top='24px'; callout.classList.add('show');
+    clearTimeout(noteT); noteT = setTimeout(()=>callout.classList.remove('show'), 4000);
+  });
+  $('auto').onclick = () => setAuto(!auto);
+
+  scene.addEventListener('pointerdown', e => { dragging = true; lx = e.clientX; ly = e.clientY; vy = 0; setAuto(false); scene.setPointerCapture(e.pointerId); });
+  scene.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - lx, dy = e.clientY - ly; lx = e.clientX; ly = e.clientY;
+    ty += dx*.5; tx = Math.max(-70, Math.min(70, tx - dy*.4)); vy = dx*.5;
+  });
+  const end = () => { dragging = false; idleT = performance.now(); };
+  scene.addEventListener('pointerup', end); scene.addEventListener('pointercancel', end);
+  addEventListener('keydown', e => {
+    if (e.key==='ArrowLeft'){ ty -= 20; setAuto(false); }
+    if (e.key==='ArrowRight'){ ty += 20; setAuto(false); }
+  });
+
+  function frame(now){
+    if (auto) ty += 0.35;
+    else if (!dragging){
+      if (Math.abs(vy) > .05){ ty += vy; vy *= .93; }          // inertia after a flick
+      if (idleT && now - idleT > 6000){ setAuto(true); idleT = 0; tx = -14; } // resume when idle
+    }
+    rx += (tx - rx)*.12; ry += (ty - ry)*.12;
+    obj.style.transform = `scale(var(--k,1)) rotateX(${rx}deg) rotateY(${ry}deg)`;
+
+    const d = new Date(), s = d.getSeconds(), m = d.getMinutes()+s/60, h = (d.getHours()%12)+m/60;
+    hh.style.transform=`rotate(${h*30}deg)`; mh.style.transform=`rotate(${m*6}deg)`; sh.style.transform=`rotate(${s*6}deg)`;
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
